@@ -99,12 +99,16 @@ export async function onRequestPost(context) {
 
   const result = await db
     .prepare(
-      `INSERT INTO records (account_id, gold, record_date, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))`
+      `INSERT INTO records (account_id, gold, date, remark)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(account_id, date)
+       DO UPDATE SET
+         gold = excluded.gold,
+         remark = excluded.remark`
     )
-    .bind(accountId, gold, recordDate, note)
+    .bind(account_id, gold, date, remark)
     .run();
-
+  
   const record = await db
     .prepare('SELECT * FROM records WHERE id = ?')
     .bind(result.meta.last_row_id)
