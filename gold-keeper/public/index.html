@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>梦幻西游 · 金币管家</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      content: [],
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Microsoft YaHei"', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+      color: #e2e8f0;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-tab { transition: all 0.3s ease; }
+    .nav-tab-active {
+      border-bottom: 4px solid #a5b4fc;
+      color: white;
+      font-weight: 600;
+    }
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-7xl mx-auto p-6">
+
+    <!-- 头部 -->
+    <div class="flex items-center justify-between mb-10 flex-wrap gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg">💰</div>
+        <div>
+          <h1 class="text-4xl font-bold tracking-tight">梦幻西游金币管家</h1>
+          <p class="text-slate-400">每日记录 · 数据可视化</p>
+        </div>
+      </div>
+      <button onclick="showQuickInput()"
+              class="flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 px-8 py-4 rounded-3xl text-lg font-semibold shadow-xl transition-all active:scale-95">
+        <i class="fas fa-bolt"></i><span>⚡ 快捷录入</span>
+      </button>
+    </div>
+
+    <!-- Tab 导航 -->
+    <div class="flex gap-1 mb-8 border-b border-slate-700 pb-1">
+      <button onclick="switchTab(0)" id="tab0"
+              class="nav-tab nav-tab-active px-8 py-4 rounded-t-2xl flex items-center gap-2 text-lg">
+        <i class="fas fa-chart-line"></i> 趋势图表
+      </button>
+      <button onclick="switchTab(1)" id="tab1"
+              class="nav-tab px-8 py-4 rounded-t-2xl flex items-center gap-2 text-lg">
+        <i class="fas fa-list"></i> 记录管理
+      </button>
+    </div>
+
+    <!-- Panel 0：图表 -->
+    <div id="panel0">
+      <div class="glass rounded-3xl p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h2 class="text-2xl font-semibold flex items-center gap-3">
+            <i class="fas fa-chart-line text-indigo-400"></i> 金币变化趋势
+          </h2>
+          <select id="chartAccountSelect" multiple size="3"
+                  class="bg-slate-800 border border-slate-600 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-indigo-500 min-w-[200px]">
+          </select>
+        </div>
+        <div class="bg-slate-950 rounded-2xl p-4">
+          <canvas id="goldChart" height="140"></canvas>
+        </div>
+
+        <!-- 汇总卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" id="summaryCards"></div>
+      </div>
+    </div>
+
+    <!-- Panel 1：记录管理 -->
+    <div id="panel1" class="hidden">
+      <div class="glass rounded-3xl p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h2 class="text-2xl font-semibold">全部记录</h2>
+          <div class="flex gap-3">
+            <button onclick="loadAllRecords()"
+                    class="px-5 py-3 bg-slate-700 hover:bg-slate-600 rounded-2xl flex items-center gap-2">
+              <i class="fas fa-sync"></i> 刷新
+            </button>
+            <button onclick="showAddRecord()"
+                    class="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-2xl flex items-center gap-2">
+              <i class="fas fa-plus"></i> 新增记录
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full" id="recordsTable">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700">
+                <th class="py-5 text-left pl-4 font-normal">账号</th>
+                <th class="py-5 text-left font-normal">日期</th>
+                <th class="py-5 text-right font-normal">金币</th>
+                <th class="py-5 text-left font-normal">备注</th>
+                <th class="py-5 text-center font-normal w-24">操作</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300" id="recordsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷录入弹窗 -->
+  <div id="quickModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-3xl p-10 w-full max-w-lg mx-4">
+      <h2 class="text-3xl font-bold mb-8 flex items-center gap-4">
+        <i class="fas fa-bolt text-yellow-400"></i> 快捷录入金币
+      </h2>
+      <div class="space-y-6">
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">账号</label>
+          <select id="quickAccount"
+                  class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500 text-lg">
+            <option value="">— 请选择账号 —</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">金币数量</label>
+          <input id="quickGold" type="number"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500 text-2xl font-mono"
+                 placeholder="12345678">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">记录日期</label>
+          <input id="quickDate" type="date"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500">
+        </div>
+      </div>
+      <div class="flex gap-4 mt-10">
+        <button onclick="hideQuickModal()"
+                class="flex-1 py-5 rounded-2xl border border-slate-600 hover:bg-slate-800 transition-colors">取消</button>
+        <button onclick="submitQuickInput()"
+                class="flex-1 py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 font-semibold text-lg">确认录入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑记录弹窗 -->
+  <div id="recordModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="glass rounded-3xl p-10 w-full max-w-lg mx-4">
+      <h2 id="recordModalTitle" class="text-3xl font-bold mb-8">新增记录</h2>
+      <div class="space-y-6">
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">账号</label>
+          <select id="recAccount"
+                  class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500 text-lg">
+            <option value="">— 请选择账号 —</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">金币数量</label>
+          <input id="recGold" type="number"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500 text-2xl font-mono">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">日期</label>
+          <input id="recDate" type="date"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-2">备注</label>
+          <input id="recNote" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-6 py-5 focus:outline-none focus:border-teal-500"
+                 placeholder="如：日常、活动、副本…">
+        </div>
+      </div>
+      <div class="flex gap-4 mt-10">
+        <button onclick="hideRecordModal()"
+                class="flex-1 py-5 rounded-2xl border border-slate-600 hover:bg-slate-800 transition-colors">取消</button>
+        <button onclick="submitRecord()"
+                class="flex-1 py-5 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 font-semibold text-lg">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─────────────────────────────────────────────
+    //  全局状态
+    // ─────────────────────────────────────────────
+    let currentChart = null;
+    let accounts = [];          // 全部账号
+    let editingRecordId = null; // 正在编辑的记录 id（null=新增）
+
+    const API = '/api';
+
+    // ─────────────────────────────────────────────
+    //  工具
+    // ─────────────────────────────────────────────
+    async function apiFetch(path, options = {}) {
+      const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || `请求失败 (${res.status})`);
+      }
+      return data;
+    }
+
+    function fmtGold(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString('zh-CN');
+    }
+
+    function toast(msg, type = 'info') {
+      // 简单控制台提示；可换成 UI 提示条
+      console[type === 'error' ? 'error' : 'log'](`[${type}]`, msg);
+      // 用浏览器原生 alert 做最小可用反馈
+      if (type === 'error') alert('⚠️ ' + msg);
+      else if (type === 'success') alert('✅ ' + msg);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Tab 切换
+    // ─────────────────────────────────────────────
+    function switchTab(n) {
+      document.getElementById('tab0').classList.toggle('nav-tab-active', n === 0);
+      document.getElementById('tab1').classList.toggle('nav-tab-active', n === 1);
+      document.getElementById('panel0').classList.toggle('hidden', n !== 0);
+      document.getElementById('panel1').classList.toggle('hidden', n !== 1);
+      if (n === 0) { loadAccounts(); loadChart(); }
+      if (n === 1) loadAllRecords();
+    }
+
+    // ─────────────────────────────────────────────
+    //  账号
+    // ─────────────────────────────────────────────
+    async function loadAccounts() {
+      try {
+        const data = await apiFetch('/accounts');
+        accounts = data.accounts || [];
+        // 填充下拉框（快捷录入 + 新增记录弹窗）
+        const fills = ['quickAccount', 'recAccount'];
+        fills.forEach(id => {
+          const sel = document.getElementById(id);
+          const cur = sel.value;
+          sel.innerHTML = '<option value="">— 请选择账号 —</option>' +
+            accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+          sel.value = cur;
+        });
+        // 图表的多选框
+        const ms = document.getElementById('chartAccountSelect');
+        ms.innerHTML = accounts.map(a =>
+          `<option value="${a.id}" ${a.latest_gold != null ? 'selected' : ''}>${a.name}</option>`
+        ).join('');
+        ms.onchange = () => loadChart();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    //  图表
+    // ─────────────────────────────────────────────
+    async function loadChart() {
+      try {
+        const selected = Array.from(document.getElementById('chartAccountSelect').selectedOptions)
+                              .map(o => o.value);
+        const params = selected.length
+          ? '?account_id=' + selected.join('&account_id=')
+          : '';
+        const data = await apiFetch('/records' + params);
+        const records = data.records || [];
+
+        // 按账号分组，按日期升序
+        const groups = {};
+        records.forEach(r => {
+          (groups[r.account_id] = groups[r.account_id] || []).push(r);
+        });
+        Object.values(groups).forEach(arr => arr.sort((a, b) => a.record_date < b.record_date ? -1 : 1));
+
+        const palette = ['#818cf8','#34d399','#fbbf24','#f472b6','#22d3ee','#fb923c','#a78bfa','#4ade80'];
+        const datasets = Object.entries(groups).map(([aid, rows], i) => {
+          const acc = accounts.find(a => a.id == aid);
+          return {
+            label: acc ? acc.name : '账号' + aid,
+            data: rows.map(r => ({ x: r.record_date, y: r.gold })),
+            borderColor: palette[i % palette.length],
+            backgroundColor: palette[i % palette.length] + '33',
+            tension: 0.35,
+            fill: false,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 3,
+          };
+        });
+
+        const allDates = [...new Set(records.map(r => r.record_date))].sort();
+
+        const ctx = document.getElementById('goldChart').getContext('2d');
+        if (currentChart) currentChart.destroy();
+        currentChart = new Chart(ctx, {
+          type: 'line',
+          data: { datasets },
+          options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { labels: { color: '#cbd5e1' } },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${fmtGold(ctx.parsed.y)}`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                type: 'category',
+                labels: allDates,
+                ticks: { color: '#94a3b8' },
+                grid: { color: '#334155' },
+              },
+              y: {
+                ticks: {
+                  color: '#94a3b8',
+                  callback: (v) => fmtGold(v),
+                },
+                grid: { color: '#334155' },
+              },
+            },
+          },
+        });
+
+        renderSummary(records);
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    function renderSummary(records) {
+      // 按账号统计最新金币、今日新增、总记录
+      const map = new Map();
+      records.forEach(r => {
+        if (!map.has(r.account_id)) map.set(r.account_id, []);
+        map.get(r.account_id).push(r);
+      });
+      const cards = [];
+      map.forEach((rows, aid) => {
+        const acc = accounts.find(a => a.id == aid);
+        if (!acc) return;
+        rows.sort((a, b) => a.record_date < b.record_date ? 1 : -1);
+        const latest = rows[0];
+        const prev = rows[1];
+        const diff = prev ? latest.gold - prev.gold : 0;
+        const trend = diff > 0 ? '📈' : diff < 0 ? '📉' : '➖';
+        cards.push(`
+          <div class="glass rounded-2xl p-5">
+            <div class="text-slate-400 text-sm">${acc.name}</div>
+            <div class="text-3xl font-bold mt-2">${fmtGold(latest.gold)}</div>
+            <div class="text-slate-500 text-xs mt-1">${latest.record_date} ${trend} ${diff !== 0 ? (diff>0?'+':'') + fmtGold(diff) : ''}</div>
+          </div>
+        `);
+      });
+      document.getElementById('summaryCards').innerHTML = cards.join('') ||
+        '<div class="text-slate-500">暂无数据，先去录入吧 🎮</div>';
+    }
+
+    // ─────────────────────────────────────────────
+    //  记录列表
+    // ─────────────────────────────────────────────
+    async function loadAllRecords() {
+      try {
+        const data = await apiFetch('/records?limit=500');
+        const rows = data.records || [];
+        const tbody = document.getElementById('recordsTbody');
+        if (rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="py-10 text-center text-slate-500">还没有任何记录，点右上角开始吧 ✨</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `
+          <tr class="border-b border-slate-800 hover:bg-slate-800/40">
+            <td class="py-4 pl-4">${r.account_name || ''}</td>
+            <td class="py-4">${r.record_date}</td>
+            <td class="py-4 text-right font-mono">${fmtGold(r.gold)}</td>
+            <td class="py-4 text-slate-400">${r.note || ''}</td>
+            <td class="py-4 text-center">
+              <button onclick="editRecord(${r.id})" class="text-indigo-400 hover:text-indigo-300 mr-3"><i class="fas fa-edit"></i></button>
+              <button onclick="deleteRecord(${r.id})" class="text-rose-400 hover:text-rose-300"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    //  新增 / 编辑 记录弹窗
+    // ─────────────────────────────────────────────
+    function showAddRecord() {
+      editingRecordId = null;
+      document.getElementById('recordModalTitle').textContent = '新增记录';
+      document.getElementById('recAccount').value = '';
+      document.getElementById('recGold').value = '';
+      document.getElementById('recDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('recNote').value = '';
+      document.getElementById('recordModal').classList.remove('hidden');
+    }
+
+    async function editRecord(id) {
+      // 简单实现：直接从当前列表里找（如果已加载）
+      try {
+        // 重新拉取一次确保最新
+        const data = await apiFetch('/records?limit=500');
+        const r = (data.records || []).find(x => x.id === id);
+        if (!r) return toast('记录不存在', 'error');
+        editingRecordId = id;
+        document.getElementById('recordModalTitle').textContent = '编辑记录';
+        document.getElementById('recAccount').value = r.account_id;
+        document.getElementById('recGold').value = r.gold;
+        document.getElementById('recDate').value = r.record_date;
+        document.getElementById('recNote').value = r.note || '';
+        document.getElementById('recordModal').classList.remove('hidden');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function hideRecordModal() {
+      document.getElementById('recordModal').classList.add('hidden');
+    }
+
+    async function submitRecord() {
+      const accountId = Number(document.getElementById('recAccount').value);
+      const gold = Number(document.getElementById('recGold').value);
+      const date = document.getElementById('recDate').value;
+      const note = document.getElementById('recNote').value.trim();
+
+      if (!accountId) return toast('请选择账号', 'error');
+      if (!Number.isFinite(gold) || gold < 0) return toast('金币数量不合法', 'error');
+      if (!date) return toast('请选择日期', 'error');
+
+      try {
+        if (editingRecordId) {
+          await apiFetch(`/records/${editingRecordId}`, {
+            method: 'PUT',
+            body: { gold, record_date: date, note },
+          });
+          toast('已更新', 'success');
+        } else {
+          await apiFetch('/records', {
+            method: 'POST',
+            body: { account_id: accountId, gold, record_date: date, note },
+          });
+          toast('已保存', 'success');
+        }
+        hideRecordModal();
+        loadAllRecords();
+        loadAccounts();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm('确定删除这条记录吗？')) return;
+      try {
+        await apiFetch(`/records/${id}`, { method: 'DELETE' });
+        toast('已删除', 'success');
+        loadAllRecords();
+        loadAccounts();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ─────────────────────────────────────────────
+    //  快捷录入
+    // ─────────────────────────────────────────────
+    function showQuickInput() {
+      document.getElementById('quickDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('quickModal').classList.remove('hidden');
+      document.getElementById('quickAccount').focus();
+    }
+    function hideQuickModal() {
+      document.getElementById('quickModal').classList.add('hidden');
+    }
+
+    async function submitQuickInput() {
+      const accountId = Number(document.getElementById('quickAccount').value);
+      const gold = Number(document.getElementById('quickGold').value);
+      const date = document.getElementById('quickDate').value;
+
+      if (!accountId) return toast('请选择账号', 'error');
+      if (!Number.isFinite(gold) || gold < 0) return toast('请输入合法金币数', 'error');
+      if (!date) return toast('请选择日期', 'error');
+
+      try {
+        const res = await apiFetch('/records', {
+          method: 'POST',
+          body: { account_id: accountId, gold, record_date: date, note: '' },
+        });
+        toast(res.updated ? '已更新今日记录' : '已新增记录', 'success');
+        hideQuickModal();
+        document.getElementById('quickGold').value = '';
+        loadAccounts();
+        // 如果在图表页，顺手刷新
+        if (!document.getElementById('panel0').classList.contains('hidden')) loadChart();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ─────────────────────────────────────────────
+    //  初始化
+    // ─────────────────────────────────────────────
+    window.onload = () => {
+      loadAccounts();
+      switchTab(0);
+    };
+  </script>
+</body>
+</html>

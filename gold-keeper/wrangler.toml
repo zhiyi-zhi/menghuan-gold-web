@@ -1,0 +1,11 @@
+# 梦幻西游金币管家 · Cloudflare Pages 配置
+
+name = "gold-keeper"
+pages_build_output_dir = "./public"
+
+# D1 数据库绑定
+# 替换 <DATABASE_ID> 为 `wrangler d1 create gold-keeper-db` 的输出
+[[d1_databases]]
+binding = "DB"
+database_name = "gold-keeper-db"
+database_id = "<DATABASE_ID>"
