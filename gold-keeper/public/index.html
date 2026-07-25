@@ -484,95 +484,94 @@
     }
 
     // ========== 图表 ==========
-    async function refreshChart() {
-      if (accountsCache.length === 0) return;
+    // ========== 图表 ==========
+async function refreshChart() {
+  if (accountsCache.length === 0) return;
 
-      const sel = document.getElementById('chartAccountSelect');
-      const selected = Array.from(sel.selectedOptions).map(o => parseInt(o.value));
-      const ids = selected.length > 0 ? selected : accountsCache.map(a => a.id);
+  const sel = document.getElementById('chartAccountSelect');
+  const selected = Array.from(sel.selectedOptions).map(o => parseInt(o.value));
+  const ids = selected.length > 0 ? selected : accountsCache.map(a => a.id);
 
-      const allDatasets = [];
-      const colors = [
-        { border: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
-        { border: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-        { border: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-        { border: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-        { border: '#06b6d4', bg: 'rgba(6,182,212,0.15)' },
-        { border: '#ec4899', bg: 'rgba(236,72,153,0.15)' },
-      ];
+  const allDatasets = [];
+  const colors = [
+    { border: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+    { border: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+    { border: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+    { border: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+    { border: '#06b6d4', bg: 'rgba(6,182,212,0.15)' },
+    { border: '#ec4899', bg: 'rgba(236,72,153,0.15)' },
+  ];
 
-      for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
-        try {
-          const data = await api(`/records?account_id=${id}`);
-          const records = data.records || [];
-          const acc = accountsCache.find(a => a.id === id);
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    try {
+      const data = await api(`/records?account_id=${id}`);
+      const records = data.records || [];
+      const acc = accountsCache.find(a => a.id === id);
 
-          if (records.length === 0) continue;
+      if (records.length === 0) continue;
 
-          const color = colors[i % colors.length];
-          allDatasets.push({
-            label: acc?.name || '账号' + id,
-            data: records.map(r => ({ x: r.date, y: r.gold })),
-            borderColor: color.border,
-            backgroundColor: color.bg,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 7
-          });
-        } catch (e) {
-          console.error(`加载账号 ${id} 数据失败:`, e);
-        }
-      }
-
-      const ctx = document.getElementById('goldChart').getContext('2d');
-      if (currentChart) currentChart.destroy();
-
-      if (allDatasets.length === 0) {
-        // 没有数据时显示空状态
-        ctx.font = '16px sans-serif';
-        ctx.fillStyle = '#64748b';
-        ctx.textAlign = 'center';
-        ctx.fillText('暂无数据，先去录入吧！', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        return;
-      }
-
-      currentChart = new Chart(ctx, {
-        type: 'line',
-        data: { datasets: allDatasets },
-        options: {
-          responsive: true,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              labels: { color: '#e2e8f0', font: { size: 13 } }
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} 金币`
-              }
-            }
-          },
-          scales: {
-            x: {
-              type: 'time',
-              time: { unit: 'day', displayFormats: { day: 'MM/dd' } },
-              ticks: { color: '#94a3b8' },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            },
-            y: {
-              ticks: {
-                color: '#94a3b8',
-                callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString()
-              },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            }
-          }
-        }
+      const color = colors[i % colors.length];
+      
+      // ✅ 关键修复：使用 labels + data 格式，适配 category 轴
+      allDatasets.push({
+        label: acc?.name || '账号' + id,
+        labels: records.map(r => r.date), // X轴标签
+        data: records.map(r => r.gold),   // Y轴数据
+        borderColor: color.border,
+        backgroundColor: color.bg,
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 7
       });
+    } catch (e) {
+      console.error(`加载账号 ${id} 数据失败:`, e);
     }
+  }
+
+  const ctx = document.getElementById('goldChart').getContext('2d');
+  if (currentChart) currentChart.destroy();
+
+  if (allDatasets.length === 0) {
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无数据，先去录入吧！', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    return;
+  }
+
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: allDatasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#e2e8f0', font: { size: 13 } } },
+        tooltip: {
+          callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} 金币` }
+        }
+      },
+      // ✅ 关键修复：改为 category，并移除 time 配置
+      scales: {
+        x: {
+          type: 'category', // 不再使用 time
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks: {
+            color: '#94a3b8',
+            callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString()
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        }
+      }
+    }
+  });
+}
 
     // ========== 记录管理 ==========
     async function loadAllRecords() {
