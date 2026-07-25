@@ -7,7 +7,7 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "gold-keeper-db"
-database_id = "YOUR_D1_DATABASE_ID_HERE"
+database_id = "6e9bf781-1354-4937-910f-434315ece91a"
 
 # Pages Functions 配置
 [pages]
