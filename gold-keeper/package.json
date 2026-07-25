@@ -1,5 +1,5 @@
 {
-  "name": "menghuan-gold-web",
+  "name": "gold-keeper",
   "version": "1.0.0",
   "description": "梦幻西游金币管家 - 基于 Cloudflare Pages + D1 的金币记录工具",
   "type": "module",
