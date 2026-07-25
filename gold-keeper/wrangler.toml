@@ -1,7 +1,7 @@
 # 梦幻西游金币管家 - Cloudflare 配置
 
-name = "menghuan-gold-web"
-compatibility_date = "2024-01-01"
+name = "gold-keeper"
+compatibility_date = "2026-01-21"
 
 # D1 数据库绑定
 [[d1_databases]]
