@@ -15,7 +15,7 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: '参数缺失' }), { status: 400 });
     }
 
-    // 核心逻辑：使用 ON CONFLICT 实现插入或覆盖
+    // ✅ 核心：使用 ON CONFLICT 实现“插入或覆盖”，彻底避开 record_date
     const result = await db
       .prepare(
         `INSERT INTO records (account_id, gold, date, remark, updated_at)
@@ -29,7 +29,7 @@ export async function onRequestPost(context) {
       .bind(accountId, gold, date, remark)
       .run();
 
-    // 查询刚操作的记录
+    // 查询刚操作的记录（只用 date，不用 record_date）
     const record = await db
       .prepare('SELECT * FROM records WHERE account_id = ? AND date = ?')
       .bind(accountId, date)
