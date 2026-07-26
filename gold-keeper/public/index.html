@@ -155,7 +155,7 @@
             <i class="fas fa-chart-line text-indigo-400"></i> 金币变化趋势
           </h2>
           <button onclick="refreshChart()"
-                  class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm flex items-center gap-2">
+                  class="ml-auto px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm flex items-center gap-2">
             <i class="fas fa-sync"></i> 刷新
           </button>
         </div>
@@ -504,10 +504,6 @@
           <div class="stat-card rounded-2xl p-3 md:p-4">
             <div class="text-slate-400 text-xs mb-1">距目标 ${GOAL.toLocaleString()}</div>
             <div class="mt-1">${gapHTML}</div>
-          </div>
-          <div class="stat-card rounded-2xl p-3 md:p-4 md:col-span-2">
-            <div class="text-slate-400 text-xs mb-1">最近录入</div>
-            <div class="text-base md:text-lg font-semibold text-amber-400 mt-1">${latest ? (latestAcc?.name || '') + ' ' + latest.date : '-'}</div>
           </div>
         `;
       } catch (e) {
