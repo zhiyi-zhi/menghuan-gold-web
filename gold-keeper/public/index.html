@@ -5,14 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>梦幻西游 · 金币管家</title>
 
-  <!-- Chart.js（国内镜像，稳定） -->
-  <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
-  <!-- Tailwind CSS（国内镜像） -->
-  <script src="https://cdn.bootcdn.net/ajax/libs/tailwindcss/3.4.0/tailwind.min.js"></script>
-
-  <!-- Font Awesome（国内镜像） -->
-  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <!-- ✅ 换回原来的 CDN（你之前能加载的版本） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
   <script>
     tailwind.config = {
@@ -78,13 +74,13 @@
     .stat-card:hover { transform: translateY(-2px); }
     .table-row:hover { background: rgba(255,255,255,0.03); }
 
-    /* 图表容器 */
-    .chart-wrap { position: relative; height: 50vh; width: 100%; }
-
-    /* 日变化颜色 */
+    /* ✅ 日变化颜色 */
     .change-up   { color: #34d399; font-weight: 600; }
     .change-down { color: #f87171; font-weight: 600; }
     .change-zero { color: #94a3b8; }
+
+    /* 图表容器 */
+    .chart-wrap { position: relative; height: 50vh; width: 100%; }
 
     /* 滚动条 */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -103,10 +99,14 @@
     input, select { color: #e2e8f0; }
     input::placeholder { color: #64748b; }
 
-    /* 表格表头居中 */
+    /* ✅ 表格表头居中 */
     .table-header th {
       text-align: center !important;
       font-weight: 500;
+    }
+    /* 表格内容也居中 */
+    .table-center td {
+      text-align: center;
     }
   </style>
 </head>
@@ -366,20 +366,34 @@
     // ==================== 工具函数 ====================
 
     /**
-     * 计算每条记录的日变化量
-     * 按日期排序后，当前 - 上一条 = 日变化
+     * ✅ 核心：按「同账号」分组，每组内按日期排序，
+     *    当前记录 - 上一条记录 = 日变化
+     * 第一天没有"上一条"，change 设为 0
      */
-    function calcDailyChange(records) {
-      const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
-      return sorted.map((r, i) => {
-        const prev = i > 0 ? sorted[i - 1].gold : null;
-        const change = prev !== null ? r.gold - prev : 0;
-        return { ...r, change, prevGold: prev };
+    function calcDailyChangeByAccount(records) {
+      // 1) 按账号分组
+      const byAcc = {};
+      records.forEach(r => {
+        if (!byAcc[r.account_id]) byAcc[r.account_id] = [];
+        byAcc[r.account_id].push(r);
       });
+
+      // 2) 每组内按日期升序排序，逐条计算变化
+      const result = [];
+      Object.values(byAcc).forEach(group => {
+        group.sort((a, b) => a.date.localeCompare(b.date));
+        group.forEach((r, i) => {
+          const prev = i > 0 ? group[i - 1].gold : null;
+          const change = prev !== null ? r.gold - prev : 0;
+          result.push({ ...r, change, prevGold: prev });
+        });
+      });
+
+      return result;
     }
 
     /**
-     * 格式化今日变化显示
+     * ✅ 格式化今日变化显示
      * + 增加 → 绿色 + 号
      * - 减少 → 红色 - 号
      * 0 / 第一天 → 灰色 0
@@ -445,13 +459,14 @@
         // 金币总量 = 所有角色最新金币之和
         const totalGold = latestList.reduce((s, r) => s + (r.gold || 0), 0);
 
-        // 每个账号距目标差值
+        // 每个账号距目标 1010000 的差值
         const gapDetails = latestList.map(r => {
           const acc = accountsCache.find(a => a.id === r.account_id);
           const gap = GOAL - r.gold;
           return { name: acc?.name || '未知', current: r.gold, gap, reached: gap <= 0 };
         });
 
+        // 距目标 HTML
         let gapHTML = '';
         if (gapDetails.length === 0) {
           gapHTML = '<span class="text-slate-500">暂无数据</span>';
@@ -597,7 +612,10 @@
         });
       }
 
+      // 所有账号日期合并排序
       const allLabels = Array.from(allLabelsSet).sort();
+
+      // 每个账号的数据对齐到统一 X 轴
       const datasets = datasetsRaw.map(ds => {
         const map = {};
         ds.points.forEach(p => map[p.date] = p.gold);
@@ -697,8 +715,10 @@
           return;
         }
 
-        // 计算日变化并合并账号名
-        const enriched = calcDailyChange(records);
+        // ✅ 按同账号分组计算日变化
+        const enriched = calcDailyChangeByAccount(records);
+
+        // 合并账号名
         enriched.forEach(r => {
           r.account_name = accountsCache.find(a => a.id === r.account_id)?.name || '未知';
         });
@@ -707,12 +727,12 @@
         enriched.sort((a, b) => b.date.localeCompare(a.date));
 
         tbody.innerHTML = enriched.map(r => `
-          <tr class="table-row border-b border-slate-800">
-            <td class="py-2 px-2 text-center font-medium">${r.account_name}</td>
-            <td class="py-2 px-2 text-center">${r.date}</td>
-            <td class="py-2 px-2 text-center font-mono">${r.gold.toLocaleString()}</td>
-            <td class="py-2 px-2 text-center font-mono font-semibold">${formatChange(r.change)}</td>
-            <td class="py-2 px-2 text-center">
+          <tr class="table-row table-center border-b border-slate-800">
+            <td class="py-2 px-2">${r.account_name}</td>
+            <td class="py-2 px-2">${r.date}</td>
+            <td class="py-2 px-2 font-mono">${r.gold.toLocaleString()}</td>
+            <td class="py-2 px-2 font-mono font-semibold">${formatChange(r.change)}</td>
+            <td class="py-2 px-2">
               <button onclick="showEditRecord(${r.id})" class="text-indigo-400 hover:text-indigo-300 mr-2"><i class="fas fa-edit"></i></button>
               <button onclick="deleteRecord(${r.id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
             </td>
@@ -799,7 +819,7 @@
           return;
         }
 
-        // 每个账号的当前金币 + 日变化
+        // ✅ 每个账号：最新金币 + 与同账号上一条的变化
         const accStats = accountsCache.map(acc => {
           const recs = allRecordsCache
             .filter(r => r.account_id === acc.id)
@@ -810,22 +830,28 @@
           return { acc, latest, change };
         });
 
-        tbody.innerHTML = accStats.map(({ acc, latest, change }) => `
-          <tr class="table-row border-b border-slate-800">
-            <td class="py-2 px-2 text-center font-medium">${acc.name}</td>
-            <td class="py-2 px-2 text-center text-slate-400 hidden md:table-cell">${acc.server || '-'}</td>
-            <td class="py-2 px-2 text-center text-slate-400 hidden md:table-cell">${acc.role || '-'}</td>
-            <td class="py-2 px-2 text-center text-slate-400 hidden lg:table-cell">${acc.remark || '-'}</td>
-            <td class="py-2 px-2 text-center">
+        tbody.innerHTML = accStats.map(({ acc, latest, change }) => {
+          let changeHTML = '<span class="change-zero">0</span>';
+          if (change > 0) changeHTML = `<span class="change-up">+${change.toLocaleString()}</span>`;
+          else if (change < 0) changeHTML = `<span class="change-down">${change.toLocaleString()}</span>`;
+
+          return `
+          <tr class="table-row table-center border-b border-slate-800">
+            <td class="py-2 px-2">${acc.name}</td>
+            <td class="py-2 px-2 text-slate-400 hidden md:table-cell">${acc.server || '-'}</td>
+            <td class="py-2 px-2 text-slate-400 hidden md:table-cell">${acc.role || '-'}</td>
+            <td class="py-2 px-2 text-slate-400 hidden lg:table-cell">${acc.remark || '-'}</td>
+            <td class="py-2 px-2">
               <div class="text-xs text-slate-300">${latest ? latest.gold.toLocaleString() + ' 金' : '-'}</div>
-              ${change !== 0 ? `<div class="text-xs font-semibold ${change > 0 ? 'change-up' : 'change-down'}">${change > 0 ? '+' : ''}${change.toLocaleString()}</div>` : '<div class="text-xs text-slate-500">0</div>'}
+              <div class="text-xs font-semibold">${changeHTML}</div>
             </td>
-            <td class="py-2 px-2 text-center">
+            <td class="py-2 px-2">
               <button onclick="showEditAccount(${acc.id})" class="text-indigo-400 hover:text-indigo-300 mr-2"><i class="fas fa-edit"></i></button>
               <button onclick="deleteAccount(${acc.id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400">${e.message}</td></tr>`;
       }
