@@ -1,1138 +1,867 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>梦幻西游手游 · 金币管家</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --primary: #67e8f9;
-            --primary-dark: #22d3ee;
-            --bg-1: #1e3a8a;
-            --bg-2: #0f172a;
-            --card: rgba(15, 23, 42, 0.88);
-            --border: rgba(103, 232, 249, 0.25);
-            --text: #e0f2fe;
-            --text-dim: #94a3b8;
-            --danger: #ef4444;
-            --success: #22d3ee;
-            --warning: #f59e0b;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>梦幻西游 · 金币管家</title>
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        body {
-            font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
-            background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
-            color: var(--text);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 16px;
-        }
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
-        /* ── Header ── */
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-top: 8px;
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Microsoft YaHei"', 'system-ui', 'sans-serif'] }
         }
-        h1 {
-            color: var(--primary);
-            font-size: clamp(1.6rem, 5vw, 2.4rem);
-            letter-spacing: 1px;
-        }
-        .subtitle {
-            color: #a5f3fc;
-            font-size: 0.9rem;
-            margin-top: 4px;
-        }
+      }
+    }
+  </script>
 
-        /* ── 统计卡片 ── */
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        @media (min-width: 640px) {
-            .stats-bar { grid-template-columns: repeat(4, 1fr); }
-        }
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px 12px;
-            text-align: center;
-        }
-        .stat-card .label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-bottom: 4px;
-        }
-        .stat-card .value {
-            font-size: clamp(1.2rem, 4vw, 1.6rem);
-            font-weight: 700;
-        }
-        .stat-card .value.cyan { color: var(--primary); }
-        .stat-card .value.green { color: #34d399; }
-        .stat-card .value.amber { color: var(--warning); }
-        .stat-card .value.white { color: #fff; }
-
-        /* ── 账号栏 ── */
-        .account-bar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 18px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .account-btn {
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            cursor: pointer;
-            color: var(--text);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all .2s;
-        }
-        .account-btn.active {
-            background: var(--primary);
-            color: #0f172a;
-            font-weight: 700;
-            border-color: transparent;
-        }
-        .account-btn:hover:not(.active) {
-            background: rgba(103,232,249,0.18);
-        }
-        .account-btn .edit-icon {
-            font-size: 0.75rem;
-            opacity: 0.7;
-        }
-        .manage-btn {
-            padding: 8px 14px;
-            background: rgba(255,255,255,0.12);
-            border: none;
-            border-radius: 999px;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-        .manage-btn:hover { background: rgba(255,255,255,0.2); }
-
-        /* ── Tab 导航 ── */
-        .tabs {
-            display: flex;
-            background: rgba(15,23,42,0.8);
-            border-radius: 12px;
-            padding: 5px;
-            margin-bottom: 20px;
-            width: fit-content;
-            max-width: 100%;
-            overflow-x: auto;
-        }
-        .tab {
-            padding: 10px 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            white-space: nowrap;
-            transition: all .2s;
-            color: var(--text-dim);
-        }
-        .tab.active {
-            background: var(--primary-dark);
-            color: #0f172a;
-            font-weight: 700;
-        }
-
-        /* ── 卡片 ── */
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        }
-        .card h2 {
-            font-size: 1.15rem;
-            margin-bottom: 14px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* ── 表单 ── */
-        .input-group {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            align-items: end;
-        }
-        @media (min-width: 600px) {
-            .input-group { grid-template-columns: 1fr 1fr auto; }
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-bottom: 4px;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.15);
-            background: #1e2937;
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-            transition: border .2s;
-        }
-        input:focus, select:focus { border-color: var(--primary); }
-
-        /* ── 按钮 ── */
-        .btn {
-            padding: 12px 28px;
-            background: var(--primary-dark);
-            color: #0f172a;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all .2s;
-        }
-        .btn:hover { background: var(--primary); transform: translateY(-1px); }
-        .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 0.85rem; }
-        .btn-danger:hover { background: #f87171; }
-        .btn-sm { padding: 8px 14px; font-size: 0.9rem; }
-
-        /* ── 表格 ── */
-        .table-wrap { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 420px;
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(103,232,249,0.15);
-            font-size: 0.9rem;
-        }
-        th { color: var(--primary); font-weight: 600; font-size: 0.8rem; }
-        td.num { text-align: right; font-family: "Cascadia Code", "Fira Code", monospace; }
-        .change-up { color: #34d399; }
-        .change-down { color: #f87171; }
-
-        /* ── 图表 ── */
-        .chart-container {
-            position: relative;
-            height: 55vh;
-            min-height: 280px;
-            max-height: 460px;
-            width: 100%;
-        }
-
-        /* ── 概览卡片 ── */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 14px;
-        }
-        .summary-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px;
-            cursor: pointer;
-            transition: all .2s;
-        }
-        .summary-card:hover { border-color: var(--primary); transform: translateY(-2px); }
-        .summary-card .name { font-size: 1rem; color: var(--text-dim); }
-        .summary-card .gold {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 8px 0;
-        }
-        .summary-card .meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: var(--text-dim);
-        }
-
-        /* ── 弹窗 ── */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .modal-overlay.show { display: flex; }
-        .modal {
-            background: #1e2937;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 420px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal h3 { margin-bottom: 16px; color: var(--primary); }
-        .modal .form-row { margin-bottom: 12px; }
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .modal-actions .btn { flex: 1; }
-        .btn-cancel {
-            background: rgba(255,255,255,0.1);
-            color: var(--text);
-        }
-
-        /* ── Toast ── */
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            z-index: 200;
-            animation: slideDown .3s ease;
-            max-width: 90vw;
-        }
-        .toast.success { background: #065f46; color: #d1fae5; }
-        .toast.error { background: #991b1b; color: #fee2e2; }
-        @keyframes slideDown {
-            from { top: -40px; opacity: 0; }
-            to { top: 20px; opacity: 1; }
-        }
-
-        /* ── 工具 ── */
-        .row-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-dim);
-        }
-        .text-dim { color: var(--text-dim); }
-        .select-inline {
-            width: auto;
-            min-width: 160px;
-            padding: 8px 12px;
-            font-size: 0.9rem;
-        }
-    </style>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glass {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-tab { transition: all 0.3s ease; }
+    .nav-tab-active {
+      border-bottom: 3px solid #a5b4fc;
+      color: white;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #059669, #047857); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-indigo {
+      background: #6366f1; color: white; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-indigo:hover { background: #4f46e5; }
+    .glass-modal {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 14px 28px; border-radius: 16px; font-size: 15px; z-index: 9999;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      animation: slideUp 0.3s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast-success { background: #10b981; color: white; }
+    .toast-error { background: #ef4444; color: white; }
+    @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .stat-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .table-row:hover { background: rgba(255,255,255,0.03); }
+    .chart-wrap {
+      position: relative;
+      height: 55vh;
+      width: 100%;
+    }
+    /* 移动端优化 */
+    @media (max-width: 640px) {
+      .stat-card { padding: 12px !important; }
+      .stat-card .text-2xl { font-size: 1.25rem !important; }
+      .stat-card .text-lg { font-size: 0.95rem !important; }
+    }
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>💰 梦幻西游 · 金币管家</h1>
-            <p class="subtitle">每日记录 · 数据可视化 · 多账号管理</p>
-        </header>
+  <div class="max-w-7xl mx-auto p-3 md:p-6">
 
-        <!-- 统计卡片 -->
-        <div class="stats-bar" id="statsBar"></div>
-
-        <!-- 账号栏 -->
-        <div class="account-bar" id="accountBar"></div>
-
-        <!-- Tab 导航 -->
-        <div class="tabs">
-            <div class="tab active" data-tab="0">📊 数据概览</div>
-            <div class="tab" data-tab="1">📝 记录金币</div>
-            <div class="tab" data-tab="2">📈 变化趋势</div>
-            <div class="tab" data-tab="3">👥 账号管理</div>
+    <!-- 头部 -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+      <div class="flex items-center gap-3 md:gap-4">
+        <div class="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-lg">💰</div>
+        <div>
+          <h1 class="text-2xl md:text-4xl font-bold tracking-tight">梦幻西游金币管家</h1>
+          <p class="text-slate-400 text-xs md:text-sm">每日记录 · 数据可视化 · 多账号管理</p>
         </div>
+      </div>
+      <button onclick="showQuickInput()"
+              class="btn-primary flex items-center justify-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-3xl text-base md:text-lg shadow-xl whitespace-nowrap">
+        <i class="fas fa-bolt"></i> ⚡ 快捷录入
+      </button>
+    </header>
 
-        <!-- Tab 0: 概览 -->
-        <div class="page" id="page0">
-            <div class="summary-grid" id="summaryGrid"></div>
-        </div>
+    <!-- 统计卡片 -->
+    <div id="statsBar" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8"></div>
 
-        <!-- Tab 1: 录入 + 记录 -->
-        <div class="page" id="page1" style="display:none;">
-            <div class="card">
-                <h2>⚡ 快捷录入金币</h2>
-                <div class="input-group">
-                    <div>
-                        <label>选择账号</label>
-                        <select id="quickAccount"></select>
-                    </div>
-                    <div>
-                        <label>金币数量</label>
-                        <input type="number" id="quickGold" placeholder="如：12345678">
-                    </div>
-                    <div>
-                        <button class="btn" onclick="submitQuick()">确认录入</button>
-                    </div>
-                </div>
-                <div class="input-group" style="margin-top:12px;">
-                    <div>
-                        <label>日期（默认今天）</label>
-                        <input type="date" id="quickDate">
-                    </div>
-                    <div style="grid-column: 1 / -1;">
-                        <label>备注（可选）</label>
-                        <input type="text" id="quickRemark" placeholder="如：日常任务、副本等">
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="row-between">
-                    <h2 style="margin:0;">📋 历史记录</h2>
-                    <select class="select-inline" id="filterAccount" onchange="loadRecords()">
-                        <option value="">全部账号</option>
-                    </select>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>账号</th>
-                                <th>日期</th>
-                                <th class="num">金币</th>
-                                <th>备注</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recordBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab 2: 图表 -->
-        <div class="page" id="page2" style="display:none;">
-            <div class="card">
-                <div class="row-between">
-                    <h2 id="chartTitle" style="margin:0;">📈 金币变化趋势</h2>
-                    <button class="btn btn-sm" onclick="renderChart()">🔄 刷新</button>
-                </div>
-                <div class="chart-container">
-                    <canvas id="goldChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab 3: 账号管理 -->
-        <div class="page" id="page3" style="display:none;">
-            <div class="card">
-                <div class="row-between">
-                    <h2 style="margin:0;">👥 账号列表</h2>
-                    <button class="btn btn-sm" onclick="showAddAccount()">+ 新增账号</button>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>名称</th>
-                                <th>服务器</th>
-                                <th>角色</th>
-                                <th>备注</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="accountBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <!-- Tab 导航 -->
+    <div class="flex flex-wrap gap-1 mb-6 md:mb-8 border-b border-slate-700 pb-1 overflow-x-auto">
+      <button onclick="switchTab(0)" id="tab0"
+              class="nav-tab nav-tab-active px-4 md:px-8 py-3 md:py-4 rounded-t-2xl flex items-center gap-1 md:gap-2 text-sm md:text-lg flex-1 md:flex-none justify-center whitespace-nowrap">
+        <i class="fas fa-chart-line"></i> <span class="hidden sm:inline">趋势图表</span><span class="sm:hidden">趋势</span>
+      </button>
+      <button onclick="switchTab(1)" id="tab1"
+              class="nav-tab px-4 md:px-8 py-3 md:py-4 rounded-t-2xl flex items-center gap-1 md:gap-2 text-sm md:text-lg flex-1 md:flex-none justify-center whitespace-nowrap">
+        <i class="fas fa-list"></i> <span class="hidden sm:inline">记录管理</span><span class="sm:hidden">记录</span>
+      </button>
+      <button onclick="switchTab(2)" id="tab2"
+              class="nav-tab px-4 md:px-8 py-3 md:py-4 rounded-t-2xl flex items-center gap-1 md:gap-2 text-sm md:text-lg flex-1 md:flex-none justify-center whitespace-nowrap">
+        <i class="fas fa-users"></i> <span class="hidden sm:inline">账号管理</span><span class="sm:hidden">账号</span>
+      </button>
     </div>
 
-    <!-- 账号编辑弹窗 -->
-    <div class="modal-overlay" id="accountModal">
-        <div class="modal">
-            <h3 id="accountModalTitle">新增账号</h3>
-            <div class="form-row">
-                <label>账号名称 *</label>
-                <input id="accName" placeholder="如：刘魔王">
-            </div>
-            <div class="form-row">
-                <label>服务器</label>
-                <input id="accServer" placeholder="如：北京一区">
-            </div>
-            <div class="form-row">
-                <label>角色</label>
-                <input id="accRole" placeholder="如：大唐官府">
-            </div>
-            <div class="form-row">
-                <label>备注</label>
-                <input id="accRemark" placeholder="可选">
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-cancel" onclick="hideAccountModal()">取消</button>
-                <button class="btn" onclick="submitAccount()">保存</button>
-            </div>
+    <!-- Tab 0: 趋势图表 -->
+    <div id="panel0">
+      <div class="glass rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+          <h2 class="text-lg md:text-xl font-semibold flex items-center gap-2">
+            <i class="fas fa-chart-line text-indigo-400"></i> 金币变化趋势（全部账号）
+          </h2>
+          <button onclick="refreshChart()"
+                  class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm flex items-center gap-2">
+            <i class="fas fa-sync"></i> 刷新
+          </button>
         </div>
+        <div class="chart-wrap bg-slate-950 rounded-2xl p-2 md:p-4">
+          <canvas id="goldChart"></canvas>
+        </div>
+      </div>
     </div>
 
-    <!-- 编辑记录弹窗 -->
-    <div class="modal-overlay" id="recordModal">
-        <div class="modal">
-            <h3>编辑记录</h3>
-            <div class="form-row">
-                <label>账号</label>
-                <select id="editAccount"></select>
-            </div>
-            <div class="form-row">
-                <label>金币数量</label>
-                <input type="number" id="editGold">
-            </div>
-            <div class="form-row">
-                <label>日期</label>
-                <input type="date" id="editDate">
-            </div>
-            <div class="form-row">
-                <label>备注</label>
-                <input type="text" id="editRemark">
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-cancel" onclick="hideRecordModal()">取消</button>
-                <button class="btn" onclick="submitEditRecord()">保存</button>
-            </div>
+    <!-- Tab 1: 记录管理 -->
+    <div id="panel1" style="display:none;">
+      <div class="glass rounded-2xl md:rounded-3xl p-3 md:p-8 shadow-2xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+          <h2 class="text-lg md:text-xl font-semibold">全部记录</h2>
+          <div class="flex gap-2 w-full md:w-auto">
+            <select id="filterAccount" onchange="loadAllRecords()"
+                    class="flex-1 md:flex-none bg-slate-800 border border-slate-600 rounded-2xl px-3 py-2 text-sm text-white">
+              <option value="">全部账号</option>
+            </select>
+            <button onclick="loadAllRecords()"
+                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-2xl flex items-center gap-1 text-sm whitespace-nowrap">
+              <i class="fas fa-sync"></i> 刷新
+            </button>
+          </div>
         </div>
+        <div class="overflow-x-auto">
+          <table class="w-full" id="recordsTable">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                <th class="py-3 text-left pl-2 font-normal">账号</th>
+                <th class="py-3 text-left font-normal">日期</th>
+                <th class="py-3 text-right font-normal">金币</th>
+                <th class="py-3 text-left font-normal hidden md:table-cell">备注</th>
+                <th class="py-3 text-center font-normal w-20">操作</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <script>
-    // ═══════════════════════════════════════════
-    //  全局状态
-    // ═══════════════════════════════════════════
-    let accounts = [];          // 账号列表（从 API 加载）
-    let currentAccountId = null; // 当前选中账号
-    let chart = null;           // Chart.js 实例
+    <!-- Tab 2: 账号管理 -->
+    <div id="panel2" style="display:none;">
+      <div class="glass rounded-2xl md:rounded-3xl p-3 md:p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg md:text-xl font-semibold">账号列表</h2>
+          <button onclick="showAddAccount()"
+                  class="btn-indigo px-4 md:px-5 py-2 md:py-3 rounded-2xl flex items-center gap-2 text-sm md:text-base">
+            <i class="fas fa-plus"></i> <span class="hidden sm:inline">新增账号</span><span class="sm:hidden">新增</span>
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full" id="accountsTable">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700 text-sm">
+                <th class="py-3 text-left pl-2 font-normal">名称</th>
+                <th class="py-3 text-left font-normal hidden md:table-cell">服务器</th>
+                <th class="py-3 text-left font-normal hidden md:table-cell">角色</th>
+                <th class="py-3 text-left font-normal hidden lg:table-cell">备注</th>
+                <th class="py-3 text-center font-normal w-20">操作</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-300 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷录入弹窗 -->
+  <div id="quickModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-4">
+    <div class="glass-modal rounded-2xl md:rounded-3xl p-5 md:p-10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="text-xl md:text-2xl font-bold mb-5 flex items-center gap-2">
+        <i class="fas fa-bolt text-yellow-400"></i> 快捷录入金币
+      </h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">账号</label>
+          <select id="quickAccountSelect"
+                  class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-base text-white">
+            <option value="">请选择账号</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">金币数量</label>
+          <input id="quickGold" type="number"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-lg md:text-xl font-mono text-white"
+                 placeholder="如：12345678" inputmode="numeric">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">记录日期</label>
+          <input id="quickDate" type="date"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-base text-white">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">备注（可选）</label>
+          <input id="quickRemark" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-base text-white"
+                 placeholder="如：日常任务">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="hideQuickModal()"
+                class="flex-1 py-3 rounded-2xl border border-slate-600 hover:bg-slate-800 text-sm md:text-base">取消</button>
+        <button onclick="submitQuickInput()"
+                class="flex-1 py-3 rounded-2xl btn-primary text-base md:text-lg">确认录入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 账号编辑弹窗 -->
+  <div id="accountModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-4">
+    <div class="glass-modal rounded-2xl md:rounded-3xl p-5 md:p-10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 id="accountModalTitle" class="text-xl md:text-2xl font-bold mb-5">新增账号</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">账号名称 *</label>
+          <input id="accName" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white"
+                 placeholder="如：主号">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">服务器</label>
+          <input id="accServer" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white"
+                 placeholder="如：北京一区">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">角色</label>
+          <input id="accRole" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white"
+                 placeholder="如：大唐官府">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">备注</label>
+          <input id="accRemark" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white"
+                 placeholder="备注信息">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="hideAccountModal()"
+                class="flex-1 py-3 rounded-2xl border border-slate-600 hover:bg-slate-800 text-sm md:text-base">取消</button>
+        <button onclick="submitAccount()"
+                class="flex-1 py-3 rounded-2xl btn-indigo text-base md:text-lg">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑记录弹窗 -->
+  <div id="recordModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-4">
+    <div class="glass-modal rounded-2xl md:rounded-3xl p-5 md:p-10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="text-xl md:text-2xl font-bold mb-5">编辑记录</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">账号</label>
+          <select id="editAccountSelect"
+                  class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white"></select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">金币数量</label>
+          <input id="editGold" type="number"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-lg font-mono text-white"
+                 inputmode="numeric">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">日期</label>
+          <input id="editDate" type="date"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">备注</label>
+          <input id="editRemark" type="text"
+                 class="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-3 text-white">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="hideRecordModal()"
+                class="flex-1 py-3 rounded-2xl border border-slate-600 hover:bg-slate-800 text-sm md:text-base">取消</button>
+        <button onclick="submitEditRecord()"
+                class="flex-1 py-3 rounded-2xl btn-primary text-base md:text-lg">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== 全局配置 ====================
+    const GOAL = 1010000; // 目标金币数
+    const COLORS = [
+      { border: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+      { border: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+      { border: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+      { border: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+      { border: '#06b6d4', bg: 'rgba(6,182,212,0.15)' },
+      { border: '#ec4899', bg: 'rgba(236,72,153,0.15)' },
+    ];
+
+    // ==================== 全局状态 ====================
+    let accountsCache = [];
+    let allRecordsCache = [];
+    let currentChart = null;
     let editingAccountId = null;
     let editingRecordId = null;
 
-    const API = {
-        accounts: '/api/accounts',
-        account:  id => `/api/accounts/${id}`,
-        records:  '/api/records',
-        record:   id => `/api/records/${id}`,
-    };
-
-    // ═══════════════════════════════════════════
-    //  API 封装
-    // ═══════════════════════════════════════════
+    // ==================== API 封装 ====================
     async function api(path, options = {}) {
-        const res = await fetch(path, {
-            headers: { 'Content-Type': 'application/json' },
-            ...options,
+      const res = await fetch('/api' + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '请求失败');
+      return data;
+    }
+
+    // ==================== Toast ====================
+    function showToast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${msg}`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    // ==================== Tab 切换 ====================
+    function switchTab(n) {
+      for (let i = 0; i < 3; i++) {
+        document.getElementById('tab' + i).classList.toggle('nav-tab-active', i === n);
+        document.getElementById('panel' + i).style.display = i === n ? 'block' : 'none';
+      }
+      if (n === 0) setTimeout(refreshChart, 50);
+      if (n === 1) loadAllRecords();
+      if (n === 2) loadAccountsTable();
+    }
+
+    // ==================== 统计卡片 ====================
+    async function loadStats() {
+      try {
+        const data = await api('/records');
+        allRecordsCache = data.records || [];
+
+        // 每个账号只取最新一条
+        const latestByAcc = {};
+        allRecordsCache.forEach(r => {
+          if (!latestByAcc[r.account_id] || r.date > latestByAcc[r.account_id].date) {
+            latestByAcc[r.account_id] = r;
+          }
         });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-            throw new Error(data.error || '请求失败');
+        const latestList = Object.values(latestByAcc);
+
+        // 金币总量 = 所有角色最新金币之和
+        const totalGold = latestList.reduce((s, r) => s + (r.gold || 0), 0);
+
+        // 每个账号距目标的差值
+        const gapDetails = latestList.map(r => {
+          const acc = accountsCache.find(a => a.id === r.account_id);
+          const gap = GOAL - r.gold;
+          return {
+            name: acc?.name || '未知',
+            current: r.gold,
+            gap: gap,
+            reached: gap <= 0
+          };
+        });
+
+        // 缺口展示：多个账号时列出每个
+        let gapHTML = '';
+        if (gapDetails.length === 0) {
+          gapHTML = '<span class="text-slate-500">暂无数据</span>';
+        } else if (gapDetails.length === 1) {
+          const g = gapDetails[0];
+          gapHTML = g.reached
+            ? `<span class="text-emerald-400 font-bold">✅ 已达标！超出 ${(-g.gap).toLocaleString()}</span>`
+            : `还差 <span class="text-amber-400 font-bold">${g.gap.toLocaleString()}</span>`;
+        } else {
+          gapHTML = gapDetails.map(g => {
+            const color = g.reached ? 'text-emerald-400' : 'text-amber-400';
+            const txt = g.reached ? `✅ 达标` : `差 ${g.gap.toLocaleString()}`;
+            return `<div class="text-xs md:text-sm ${color}">${g.name}: ${txt}</div>`;
+          }).join('');
         }
-        return data;
+
+        // 最近录入
+        const sorted = [...allRecordsCache].sort((a, b) => b.date.localeCompare(a.date));
+        const latest = sorted[0];
+        const latestAcc = latest ? accountsCache.find(a => a.id === latest.account_id) : null;
+
+        document.getElementById('statsBar').innerHTML = `
+          <div class="stat-card rounded-2xl p-3 md:p-4">
+            <div class="text-slate-400 text-xs mb-1">总记录数</div>
+            <div class="text-xl md:text-2xl font-bold text-white">${allRecordsCache.length}</div>
+          </div>
+          <div class="stat-card rounded-2xl p-3 md:p-4">
+            <div class="text-slate-400 text-xs mb-1">账号数量</div>
+            <div class="text-xl md:text-2xl font-bold text-indigo-400">${accountsCache.length}</div>
+          </div>
+          <div class="stat-card rounded-2xl p-3 md:p-4">
+            <div class="text-slate-400 text-xs mb-1">金币总量（最新）</div>
+            <div class="text-xl md:text-2xl font-bold text-emerald-400">${totalGold.toLocaleString()}</div>
+          </div>
+          <div class="stat-card rounded-2xl p-3 md:p-4">
+            <div class="text-slate-400 text-xs mb-1">距目标 ${GOAL.toLocaleString()}</div>
+            <div class="mt-1">${gapHTML}</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('统计失败:', e);
+      }
     }
 
-    // ═══════════════════════════════════════════
-    //  Toast
-    // ═══════════════════════════════════════════
-    function toast(msg, type = 'success') {
-        const el = document.createElement('div');
-        el.className = `toast ${type}`;
-        el.textContent = msg;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 2800);
-    }
-
-    // ═══════════════════════════════════════════
-    //  Tab 切换
-    // ═══════════════════════════════════════════
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const idx = tab.dataset.tab;
-            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
-            document.querySelectorAll('.page').forEach((p, i) => {
-                p.style.display = i == idx ? 'block' : 'none';
-            });
-            // 延迟渲染，确保 canvas 尺寸正确
-            setTimeout(() => {
-                if (idx === '0') renderSummary();
-                if (idx === '1') loadRecords();
-                if (idx === '2') renderChart();
-                if (idx === '3') loadAccountsTable();
-            }, 50);
-        });
-    });
-
-    function switchToTab(idx) {
-        document.querySelector(`.tab[data-tab="${idx}"]`).click();
-    }
-
-    // ═══════════════════════════════════════════
-    //  账号加载 & 渲染
-    // ═══════════════════════════════════════════
+    // ==================== 账号加载 ====================
     async function loadAccounts() {
-        try {
-            const data = await api(API.accounts);
-            accounts = data.accounts || [];
-            if (!currentAccountId && accounts.length > 0) {
-                currentAccountId = accounts[0].id;
-            }
-            renderAccountBar();
-            renderQuickSelect();
-            renderFilterSelect();
-            renderEditAccountSelect();
-            renderStats();
-        } catch (e) {
-            toast('加载账号失败: ' + e.message, 'error');
+      try {
+        const data = await api('/accounts');
+        accountsCache = data.accounts || [];
+
+        const filterSel = document.getElementById('filterAccount');
+        filterSel.innerHTML = '<option value="">全部账号</option>' +
+          accountsCache.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+        const quickSel = document.getElementById('quickAccountSelect');
+        quickSel.innerHTML = '<option value="">请选择账号</option>' +
+          accountsCache.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+        const editSel = document.getElementById('editAccountSelect');
+        if (editSel) {
+          editSel.innerHTML = accountsCache.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
         }
+      } catch (e) {
+        showToast('加载账号失败: ' + e.message, 'error');
+      }
     }
 
-    function renderAccountBar() {
-        const bar = document.getElementById('accountBar');
-        bar.innerHTML = '';
-        accounts.forEach(acc => {
-            const btn = document.createElement('button');
-            btn.className = `account-btn ${acc.id === currentAccountId ? 'active' : ''}`;
-            btn.innerHTML = `${acc.name} <span class="edit-icon" title="编辑">✏️</span>`;
-            btn.onclick = (e) => {
-                if (e.target.classList.contains('edit-icon')) {
-                    e.stopPropagation();
-                    showEditAccount(acc.id);
-                } else {
-                    currentAccountId = acc.id;
-                    renderAccountBar();
-                    renderStats();
-                    // 如果当前在概览页，刷新
-                    if (document.getElementById('page0').style.display !== 'none') renderSummary();
-                }
-            };
-            bar.appendChild(btn);
+    // ==================== 快捷录入 ====================
+    function showQuickInput() {
+      document.getElementById('quickDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('quickGold').value = '';
+      document.getElementById('quickRemark').value = '';
+      document.getElementById('quickModal').classList.remove('hidden');
+      loadAccounts();
+    }
+    function hideQuickModal() {
+      document.getElementById('quickModal').classList.add('hidden');
+    }
+
+    async function submitQuickInput() {
+      const accountId = document.getElementById('quickAccountSelect').value;
+      const gold = parseInt(document.getElementById('quickGold').value);
+      const date = document.getElementById('quickDate').value;
+      const remark = document.getElementById('quickRemark').value.trim();
+
+      if (!accountId) { showToast('请选择账号', 'error'); return; }
+      if (isNaN(gold) || gold < 0) { showToast('请输入有效金币数', 'error'); return; }
+      if (!date) { showToast('请选择日期', 'error'); return; }
+
+      try {
+        const result = await api('/records', {
+          method: 'POST',
+          body: JSON.stringify({ account_id: parseInt(accountId), gold, date, remark })
         });
-        const addBtn = document.createElement('button');
-        addBtn.className = 'manage-btn';
-        addBtn.textContent = '+ 新账号';
-        addBtn.onclick = showAddAccount;
-        bar.appendChild(addBtn);
-    }
-
-    function renderQuickSelect() {
-        const sel = document.getElementById('quickAccount');
-        sel.innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-        if (currentAccountId) sel.value = currentAccountId;
-    }
-
-    function renderFilterSelect() {
-        const sel = document.getElementById('filterAccount');
-        sel.innerHTML = '<option value="">全部账号</option>' +
-            accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-    }
-
-    function renderEditAccountSelect() {
-        const sel = document.getElementById('editAccount');
-        sel.innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-    }
-
-    // ═══════════════════════════════════════════
-    //  统计卡片
-    // ═══════════════════════════════════════════
-    async function renderStats() {
-        try {
-            const data = await api(API.records + '?limit=1000');
-            const records = data.records || [];
-            const totalRecords = records.length;
-            const uniqueAccounts = new Set(records.map(r => r.account_id)).size;
-            const totalGold = records.reduce((s, r) => s + (r.gold || 0), 0);
-            const latest = records[0]; // API 已按 date DESC 排序
-            const latestAcc = latest ? accounts.find(a => a.id === latest.account_id) : null;
-
-            document.getElementById('statsBar').innerHTML = `
-                <div class="stat-card">
-                    <div class="label">总记录数</div>
-                    <div class="value white">${totalRecords}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label">账号数量</div>
-                    <div class="value cyan">${uniqueAccounts}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label">金币总量</div>
-                    <div class="value green">${totalGold.toLocaleString()}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label">最近录入</div>
-                    <div class="value amber" style="font-size:1rem;">${latest ? (latestAcc?.name || '') + ' · ' + latest.date : '—'}</div>
-                </div>
-            `;
-        } catch (e) {
-            console.error('统计加载失败:', e);
+        if (result.success !== false) {
+          showToast('录入成功！');
+          hideQuickModal();
+          refreshChart();
+          loadStats();
+          if (document.getElementById('panel1').style.display !== 'none') loadAllRecords();
         }
+      } catch (e) {
+        showToast('录入失败: ' + e.message, 'error');
+      }
     }
 
-    // ═══════════════════════════════════════════
-    //  快捷录入
-    // ═══════════════════════════════════════════
-    function submitQuick() {
-        const accountId = document.getElementById('quickAccount').value;
-        const gold = parseInt(document.getElementById('quickGold').value);
-        const date = document.getElementById('quickDate').value;
-        const remark = document.getElementById('quickRemark').value.trim();
-
-        if (!accountId) return toast('请选择账号', 'error');
-        if (isNaN(gold) || gold < 0) return toast('请输入有效金币数', 'error');
-        if (!date) return toast('请选择日期', 'error');
-
-        api(API.records, {
-            method: 'POST',
-            body: JSON.stringify({ account_id: parseInt(accountId), gold, date, remark }),
-        }).then(() => {
-            toast('✅ 录入成功！');
-            document.getElementById('quickGold').value = '';
-            document.getElementById('quickRemark').value = '';
-            renderStats();
-            if (document.getElementById('page1').style.display !== 'none') loadRecords();
-            if (document.getElementById('page2').style.display !== 'none') renderChart();
-        }).catch(e => toast('录入失败: ' + e.message, 'error'));
-    }
-
-    // ═══════════════════════════════════════════
-    //  记录管理
-    // ═══════════════════════════════════════════
-    async function loadRecords() {
-        const filterId = document.getElementById('filterAccount').value;
-        const tbody = document.getElementById('recordBody');
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-dim);">加载中...</td></tr>';
-
+    // ==================== 图表（全部账号） ====================
+    async function refreshChart() {
+      if (accountsCache.length === 0) await loadAccounts();
+      if (allRecordsCache.length === 0) {
         try {
-            let url = API.records + '?limit=500';
-            if (filterId) url += `&account_id=${filterId}`;
-            const data = await api(url);
-            const records = data.records || [];
+          const d = await api('/records');
+          allRecordsCache = d.records || [];
+        } catch(e) { console.error(e); }
+      }
 
-            if (records.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-dim);">暂无记录</td></tr>';
-                return;
+      const allLabelsSet = new Set();
+      const datasetsRaw = [];
+
+      for (let i = 0; i < accountsCache.length; i++) {
+        const acc = accountsCache[i];
+        try {
+          const data = await api(`/records?account_id=${acc.id}`);
+          const records = (data.records || []).sort((a, b) => a.date.localeCompare(b.date));
+          if (records.length === 0) continue;
+
+          records.forEach(r => allLabelsSet.add(r.date));
+
+          datasetsRaw.push({
+            label: acc.name,
+            color: COLORS[i % COLORS.length],
+            points: records.map(r => ({ date: r.date, gold: r.gold }))
+          });
+        } catch (e) {
+          console.error(`账号 ${acc.name} 加载失败:`, e);
+        }
+      }
+
+      // 统一 X 轴
+      const allLabels = Array.from(allLabelsSet).sort();
+
+      const datasets = datasetsRaw.map(ds => {
+        const map = {};
+        ds.points.forEach(p => map[p.date] = p.gold);
+        return {
+          label: ds.label,
+          data: allLabels.map(d => map[d] ?? null),
+          borderColor: ds.color.border,
+          backgroundColor: ds.color.bg,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: window.innerWidth < 768 ? 3 : 5,
+          pointHoverRadius: 7,
+          spanGaps: true
+        };
+      });
+
+      const canvas = document.getElementById('goldChart');
+      const ctx = canvas.getContext('2d');
+
+      if (currentChart) currentChart.destroy();
+
+      if (datasets.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = window.innerWidth < 768 ? '14px sans-serif' : '16px sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'center';
+        ctx.fillText('暂无数据，先去录入吧！', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      currentChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allLabels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#e2e8f0',
+                font: { size: window.innerWidth < 768 ? 11 : 13 },
+                boxWidth: window.innerWidth < 768 ? 12 : 16
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString() || '无'} 金币`
+              }
             }
-
-            // 计算每日变化（按账号分组）
-            const byAcc = {};
-            records.forEach(r => {
-                if (!byAcc[r.account_id]) byAcc[r.account_id] = [];
-                byAcc[r.account_id].push(r);
-            });
-            Object.values(byAcc).forEach(arr => {
-                arr.sort((a, b) => a.date.localeCompare(b.date));
-                arr.forEach((r, i) => {
-                    r.change = i > 0 ? r.gold - arr[i - 1].gold : 0;
-                });
-            });
-
-            tbody.innerHTML = records.map(r => {
-                const acc = accounts.find(a => a.id === r.account_id);
-                const changeHtml = r.change > 0
-                    ? `<span class="change-up">+${r.change.toLocaleString()}</span>`
-                    : r.change < 0
-                    ? `<span class="change-down">${r.change.toLocaleString()}</span>`
-                    : '<span class="text-dim">—</span>';
-                return `
-                    <tr>
-                        <td>${acc?.name || '未知'}</td>
-                        <td>${r.date}</td>
-                        <td class="num">${r.gold.toLocaleString()}</td>
-                        <td>${r.remark || '—'}</td>
-                        <td>
-                            <button class="btn btn-sm" style="margin-right:6px;padding:4px 10px;" onclick="showEditRecord(${r.id})">✏️</button>
-                            <button class="btn-danger" onclick="deleteRecord(${r.id})">🗑</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        } catch (e) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#f87171;">加载失败: ${e.message}</td></tr>`;
+          },
+          scales: {
+            x: {
+              type: 'category',
+              ticks: {
+                color: '#94a3b8',
+                maxRotation: 45,
+                minRotation: 45,
+                font: { size: window.innerWidth < 768 ? 10 : 12 },
+                autoSkip: true,
+                maxTicksLimit: window.innerWidth < 768 ? 6 : 12
+              },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+              ticks: {
+                color: '#94a3b8',
+                font: { size: window.innerWidth < 768 ? 10 : 12 },
+                callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString()
+              },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            }
+          }
         }
+      });
+    }
+
+    // ==================== 记录管理 ====================
+    async function loadAllRecords() {
+      const filterId = document.getElementById('filterAccount').value;
+      const tbody = document.querySelector('#recordsTable tbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+
+      try {
+        let records = [];
+        if (filterId) {
+          records = (await api(`/records?account_id=${filterId}`)).records || [];
+        } else {
+          if (allRecordsCache.length === 0) {
+            const d = await api('/records');
+            allRecordsCache = d.records || [];
+          }
+          records = [...allRecordsCache];
+        }
+
+        if (records.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">暂无记录</td></tr>';
+          return;
+        }
+
+        records.forEach(r => {
+          r.account_name = accountsCache.find(a => a.id === r.account_id)?.name || '未知';
+        });
+
+        tbody.innerHTML = records.map(r => `
+          <tr class="table-row border-b border-slate-800">
+            <td class="py-2 pl-2 font-medium">${r.account_name}</td>
+            <td class="py-2">${r.date}</td>
+            <td class="py-2 text-right font-mono">${r.gold.toLocaleString()}</td>
+            <td class="py-2 text-slate-400 hidden md:table-cell">${r.remark || '-'}</td>
+            <td class="py-2 text-center">
+              <button onclick="showEditRecord(${r.id})" class="text-indigo-400 hover:text-indigo-300 mr-2"><i class="fas fa-edit"></i></button>
+              <button onclick="deleteRecord(${r.id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400">加载失败: ${e.message}</td></tr>`;
+      }
     }
 
     async function deleteRecord(id) {
-        if (!confirm('确定删除这条记录？')) return;
-        try {
-            await api(API.record(id), { method: 'DELETE' });
-            toast('已删除');
-            loadRecords();
-            renderStats();
-            if (document.getElementById('page2').style.display !== 'none') renderChart();
-        } catch (e) {
-            toast('删除失败: ' + e.message, 'error');
-        }
+      if (!confirm('确定删除这条记录？')) return;
+      try {
+        await api(`/records/${id}`, { method: 'DELETE' });
+        showToast('已删除');
+        allRecordsCache = allRecordsCache.filter(r => r.id !== id);
+        loadAllRecords();
+        refreshChart();
+        loadStats();
+      } catch (e) {
+        showToast('删除失败: ' + e.message, 'error');
+      }
     }
 
-    // ═══════════════════════════════════════════
-    //  编辑记录弹窗
-    // ═══════════════════════════════════════════
     async function showEditRecord(id) {
-        try {
-            // 从当前列表中找到记录
-            const filterId = document.getElementById('filterAccount').value;
-            let url = API.records + '?limit=500';
-            if (filterId) url += `&account_id=${filterId}`;
-            const data = await api(url);
-            const rec = (data.records || []).find(r => r.id === id);
-            if (!rec) return toast('记录不存在', 'error');
+      try {
+        const rec = allRecordsCache.find(r => r.id === id);
+        if (!rec) { showToast('记录不存在', 'error'); return; }
 
-            editingRecordId = id;
-            document.getElementById('editAccount').value = rec.account_id;
-            document.getElementById('editGold').value = rec.gold;
-            document.getElementById('editDate').value = rec.date;
-            document.getElementById('editRemark').value = rec.remark || '';
-            document.getElementById('recordModal').classList.add('show');
-        } catch (e) {
-            toast('加载失败: ' + e.message, 'error');
-        }
+        editingRecordId = id;
+        await loadAccounts();
+
+        document.getElementById('editAccountSelect').value = rec.account_id;
+        document.getElementById('editGold').value = rec.gold;
+        document.getElementById('editDate').value = rec.date;
+        document.getElementById('editRemark').value = rec.remark || '';
+
+        document.getElementById('recordModal').classList.remove('hidden');
+      } catch (e) {
+        showToast('加载记录失败: ' + e.message, 'error');
+      }
     }
-
     function hideRecordModal() {
-        document.getElementById('recordModal').classList.remove('show');
-        editingRecordId = null;
+      document.getElementById('recordModal').classList.add('hidden');
+      editingRecordId = null;
     }
 
     async function submitEditRecord() {
-        const accountId = parseInt(document.getElementById('editAccount').value);
-        const gold = parseInt(document.getElementById('editGold').value);
-        const date = document.getElementById('editDate').value;
-        const remark = document.getElementById('editRemark').value.trim();
+      const accountId = parseInt(document.getElementById('editAccountSelect').value);
+      const gold = parseInt(document.getElementById('editGold').value);
+      const date = document.getElementById('editDate').value;
+      const remark = document.getElementById('editRemark').value.trim();
 
-        if (!accountId || isNaN(gold) || !date) return toast('请填写完整信息', 'error');
+      if (!accountId || isNaN(gold) || !date) {
+        showToast('请填写完整信息', 'error');
+        return;
+      }
 
-        try {
-            await api(API.record(editingRecordId), {
-                method: 'PUT',
-                body: JSON.stringify({ account_id: accountId, gold, date, remark }),
-            });
-            toast('已更新');
-            hideRecordModal();
-            loadRecords();
-            renderStats();
-            if (document.getElementById('page2').style.display !== 'none') renderChart();
-        } catch (e) {
-            toast('更新失败: ' + e.message, 'error');
+      try {
+        await api(`/records/${editingRecordId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ account_id: accountId, gold, date, remark })
+        });
+        showToast('已更新');
+        hideRecordModal();
+
+        // 更新缓存
+        const idx = allRecordsCache.findIndex(r => r.id === editingRecordId);
+        if (idx !== -1) {
+          allRecordsCache[idx] = { ...allRecordsCache[idx], account_id: accountId, gold, date, remark };
         }
+
+        loadAllRecords();
+        refreshChart();
+        loadStats();
+      } catch (e) {
+        showToast('更新失败: ' + e.message, 'error');
+      }
     }
 
-    // ═══════════════════════════════════════════
-    //  账号管理弹窗
-    // ═══════════════════════════════════════════
+    // ==================== 账号管理 ====================
+    async function loadAccountsTable() {
+      const tbody = document.querySelector('#accountsTable tbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">加载中...</td></tr>';
+
+      try {
+        if (accountsCache.length === 0) await loadAccounts();
+
+        if (accountsCache.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">暂无账号，点击右上角新增</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = accountsCache.map(a => `
+          <tr class="table-row border-b border-slate-800">
+            <td class="py-2 pl-2 font-medium">${a.name}</td>
+            <td class="py-2 text-slate-400 hidden md:table-cell">${a.server || '-'}</td>
+            <td class="py-2 text-slate-400 hidden md:table-cell">${a.role || '-'}</td>
+            <td class="py-2 text-slate-400 hidden lg:table-cell">${a.remark || '-'}</td>
+            <td class="py-2 text-center">
+              <button onclick="showEditAccount(${a.id})" class="text-indigo-400 hover:text-indigo-300 mr-2"><i class="fas fa-edit"></i></button>
+              <button onclick="deleteAccount(${a.id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400">加载失败: ${e.message}</td></tr>`;
+      }
+    }
+
     function showAddAccount() {
-        editingAccountId = null;
-        document.getElementById('accountModalTitle').textContent = '新增账号';
-        document.getElementById('accName').value = '';
-        document.getElementById('accName').focus();
-        document.getElementById('accServer').value = '';
-        document.getElementById('accRole').value = '';
-        document.getElementById('accRemark').value = '';
-        document.getElementById('accountModal').classList.add('show');
+      editingAccountId = null;
+      document.getElementById('accountModalTitle').textContent = '新增账号';
+      document.getElementById('accName').value = '';
+      document.getElementById('accName').focus();
+      document.getElementById('accServer').value = '';
+      document.getElementById('accRole').value = '';
+      document.getElementById('accRemark').value = '';
+      document.getElementById('accountModal').classList.remove('hidden');
     }
 
     function showEditAccount(id) {
-        const acc = accounts.find(a => a.id === id);
-        if (!acc) return;
-        editingAccountId = id;
-        document.getElementById('accountModalTitle').textContent = '编辑账号';
-        document.getElementById('accName').value = acc.name;
-        document.getElementById('accServer').value = acc.server || '';
-        document.getElementById('accRole').value = acc.role || '';
-        document.getElementById('accRemark').value = acc.remark || '';
-        document.getElementById('accountModal').classList.add('show');
+      const acc = accountsCache.find(a => a.id === id);
+      if (!acc) return;
+
+      editingAccountId = id;
+      document.getElementById('accountModalTitle').textContent = '编辑账号';
+      document.getElementById('accName').value = acc.name;
+      document.getElementById('accServer').value = acc.server || '';
+      document.getElementById('accRole').value = acc.role || '';
+      document.getElementById('accRemark').value = acc.remark || '';
+      document.getElementById('accountModal').classList.remove('hidden');
     }
 
     function hideAccountModal() {
-        document.getElementById('accountModal').classList.remove('show');
-        editingAccountId = null;
+      document.getElementById('accountModal').classList.add('hidden');
+      editingAccountId = null;
     }
 
     async function submitAccount() {
-        const name = document.getElementById('accName').value.trim();
-        const server = document.getElementById('accServer').value.trim();
-        const role = document.getElementById('accRole').value.trim();
-        const remark = document.getElementById('accRemark').value.trim();
+      const name = document.getElementById('accName').value.trim();
+      const server = document.getElementById('accServer').value.trim();
+      const role = document.getElementById('accRole').value.trim();
+      const remark = document.getElementById('accRemark').value.trim();
 
-        if (!name) return toast('请输入账号名称', 'error');
+      if (!name) { showToast('请输入账号名称', 'error'); return; }
 
-        try {
-            if (editingAccountId) {
-                await api(API.account(editingAccountId), {
-                    method: 'PUT',
-                    body: JSON.stringify({ name, server, role, remark }),
-                });
-                toast('账号已更新');
-            } else {
-                await api(API.accounts, {
-                    method: 'POST',
-                    body: JSON.stringify({ name, server, role, remark }),
-                });
-                toast('账号已创建');
-            }
-            hideAccountModal();
-            await loadAccounts();
-            if (document.getElementById('page3').style.display !== 'none') loadAccountsTable();
-        } catch (e) {
-            toast('保存失败: ' + e.message, 'error');
+      try {
+        if (editingAccountId) {
+          await api(`/accounts/${editingAccountId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name, server, role, remark })
+          });
+          showToast('账号已更新');
+        } else {
+          await api('/accounts', {
+            method: 'POST',
+            body: JSON.stringify({ name, server, role, remark })
+          });
+          showToast('账号已创建');
         }
+        hideAccountModal();
+        await loadAccounts();
+        loadAccountsTable();
+        loadStats();
+      } catch (e) {
+        showToast('保存失败: ' + e.message, 'error');
+      }
     }
 
     async function deleteAccount(id) {
-        const acc = accounts.find(a => a.id === id);
-        if (!confirm(`确定删除账号「${acc?.name}」？\n该账号下所有金币记录也会被删除！`)) return;
-        try {
-            await api(API.account(id), { method: 'DELETE' });
-            toast('账号已删除');
-            if (currentAccountId === id) currentAccountId = null;
-            await loadAccounts();
-            if (document.getElementById('page3').style.display !== 'none') loadAccountsTable();
-        } catch (e) {
-            toast('删除失败: ' + e.message, 'error');
-        }
-    }
+      const acc = accountsCache.find(a => a.id === id);
+      if (!confirm(`确定删除账号「${acc?.name}」？\n该账号下的所有金币记录也会被删除！`)) return;
 
-    async function loadAccountsTable() {
-        const tbody = document.getElementById('accountBody');
-        if (accounts.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-dim);">暂无账号</td></tr>';
-            return;
-        }
-        tbody.innerHTML = accounts.map(a => `
-            <tr>
-                <td><strong>${a.name}</strong></td>
-                <td>${a.server || '—'}</td>
-                <td>${a.role || '—'}</td>
-                <td>${a.remark || '—'}</td>
-                <td>
-                    <button class="btn btn-sm" style="margin-right:6px;padding:4px 10px;" onclick="showEditAccount(${a.id})">✏️</button>
-                    <button class="btn-danger" onclick="deleteAccount(${a.id})">🗑</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    // ═══════════════════════════════════════════
-    //  概览卡片
-    // ═══════════════════════════════════════════
-    async function renderSummary() {
-        const grid = document.getElementById('summaryGrid');
-        if (accounts.length === 0) {
-            grid.innerHTML = '<div class="empty-state">暂无账号，请先添加</div>';
-            return;
-        }
-
-        try {
-            // 并行加载所有账号的记录
-            const allData = await Promise.all(
-                accounts.map(a => api(API.records + `?account_id=${a.id}&limit=500`).catch(() => ({ records: [] })))
-            );
-
-            grid.innerHTML = accounts.map((acc, i) => {
-                const recs = (allData[i].records || []).sort((a, b) => a.date.localeCompare(b.date));
-                const latest = recs.length > 0 ? recs[recs.length - 1] : null; // ASC → last = latest
-                const oldest = recs.length > 0 ? recs[0] : null;
-                const change = (latest && oldest && recs.length > 1) ? latest.gold - oldest.gold : 0;
-                const changeStr = change > 0 ? `+${change.toLocaleString()}` : change < 0 ? change.toLocaleString() : '—';
-
-                return `
-                    <div class="summary-card" onclick="currentAccountId=${acc.id}; renderAccountBar(); switchToTab(2);">
-                        <div class="name">${acc.name}</div>
-                        <div class="gold">${latest ? latest.gold.toLocaleString() : '0'}</div>
-                        <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;">
-                            ${latest ? '📅 ' + latest.date : '尚无记录'}
-                        </div>
-                        <div class="meta">
-                            <span>记录 ${recs.length} 天</span>
-                            <span style="color:${change >= 0 ? '#34d399' : '#f87171'}">总变化 ${changeStr}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            grid.innerHTML = `<div class="empty-state" style="color:#f87171;">加载失败: ${e.message}</div>`;
-        }
-    }
-
-    // ═══════════════════════════════════════════
-    //  ✅ Chart.js 图表（修复版）
-    // ═══════════════════════════════════════════
-    async function renderChart() {
-        const canvas = document.getElementById('goldChart');
-        const ctx = canvas.getContext('2d');
-
-        // 销毁旧图表
-        if (chart) { chart.destroy(); chart = null; }
-
-        try {
-            // 确定要画哪些账号
-            const targetIds = currentAccountId
-                ? [currentAccountId]
-                : accounts.map(a => a.id);
-
-            if (targetIds.length === 0) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                return;
-            }
-
-            const colors = [
-                { border: '#67e8f9', bg: 'rgba(103,232,249,0.15)' },
-                { border: '#34d399', bg: 'rgba(52,211,153,0.15)' },
-                { border: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-                { border: '#f87171', bg: 'rgba(248,113,113,0.15)' },
-                { border: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
-                { border: '#fb923c', bg: 'rgba(251,146,60,0.15)' },
-            ];
-
-            // 并行加载每个账号的数据
-            const allData = await Promise.all(
-                targetIds.map(id => api(API.records + `?account_id=${id}&limit=1000`).catch(() => ({ records: [] })))
-            );
-
-            // 收集所有日期（去重排序）
-            const dateSet = new Set();
-            allData.forEach(d => (d.records || []).forEach(r => dateSet.add(r.date)));
-            const allDates = Array.from(dateSet).sort();
-
-            if (allDates.length === 0) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = '16px sans-serif';
-                ctx.fillStyle = '#64748b';
-                ctx.textAlign = 'center';
-                ctx.fillText('暂无数据，先去录入吧！', canvas.width / 2, canvas.height / 2);
-                return;
-            }
-
-            // 构建 datasets（labels 放在 data 层，不在 dataset 内）
-            const datasets = allData.map((d, i) => {
-                const acc = accounts.find(a => a.id === targetIds[i]);
-                const recs = (d.records || []).sort((a, b) => a.date.localeCompare(b.date));
-                const goldMap = {};
-                recs.forEach(r => { goldMap[r.date] = r.gold; });
-
-                const color = colors[i % colors.length];
-                return {
-                    label: acc?.name || '账号' + targetIds[i],
-                    data: allDates.map(date => goldMap[date] ?? null),
-                    borderColor: color.border,
-                    backgroundColor: color.bg,
-                    borderWidth: 2.5,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 4,
-                    pointHoverRadius: 7,
-                    spanGaps: true, // 中间缺日期时连线
-                };
-            });
-
-            const isMobile = window.innerWidth < 640;
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: allDates,   // ✅ labels 在 data 层
-                    datasets: datasets,
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // ✅ 必须，配合 chart-container 高度
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e0f2fe',
-                                font: { size: isMobile ? 11 : 13 },
-                                boxWidth: isMobile ? 16 : 24,
-                            },
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => {
-                                    const v = ctx.parsed.y;
-                                    return v == null ? `${ctx.dataset.label}: —` : `${ctx.dataset.label}: ${v.toLocaleString()} 金币`;
-                                },
-                            },
-                        },
-                    },
-                    scales: {
-                        x: {
-                            type: 'category', // ✅ category 轴
-                            ticks: {
-                                color: '#94a3b8',
-                                maxRotation: 45,
-                                minRotation: 45,
-                                font: { size: isMobile ? 10 : 12 },
-                            },
-                            grid: { color: 'rgba(103,232,249,0.08)' },
-                        },
-                        y: {
-                            ticks: {
-                                color: '#94a3b8',
-                                font: { size: isMobile ? 10 : 12 },
-                                callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString(),
-                            },
-                            grid: { color: 'rgba(103,232,249,0.08)' },
-                        },
-                    },
-                },
-            });
-        } catch (e) {
-            console.error('图表渲染失败:', e);
-            toast('图表加载失败: ' + e.message, 'error');
-        }
-    }
-
-    // ═══════════════════════════════════════════
-    //  键盘 & 初始化
-    // ═══════════════════════════════════════════
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            hideAccountModal();
-            hideRecordModal();
-        }
-    });
-
-    // 点击弹窗遮罩关闭
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', e => {
-            if (e.target === overlay) overlay.classList.remove('show');
-        });
-    });
-
-    async function init() {
-        // 默认日期为今天
-        document.getElementById('quickDate').value = new Date().toISOString().split('T')[0];
+      try {
+        await api(`/accounts/${id}`, { method: 'DELETE' });
+        showToast('账号已删除');
         await loadAccounts();
-        renderSummary();
+        loadAccountsTable();
+        loadStats();
+        refreshChart();
+      } catch (e) {
+        showToast('删除失败: ' + e.message, 'error');
+      }
     }
 
-    window.addEventListener('DOMContentLoaded', init);
-    </script>
+    // ==================== 键盘快捷键 ====================
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideQuickModal();
+        hideAccountModal();
+        hideRecordModal();
+      }
+    });
+
+    // ==================== 初始化 ====================
+    window.onload = async () => {
+      await loadAccounts();
+      await loadStats();
+      switchTab(0);
+    };
+  </script>
 </body>
 </html>
