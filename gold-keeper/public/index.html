@@ -4,18 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>梦幻西游 · 金币管家</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js (只需要这一个) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['"Microsoft YaHei"', 'system-ui', 'sans-serif']
-          }
+          fontFamily: { sans: ['"Microsoft YaHei"', 'system-ui', 'sans-serif'] }
         }
       }
     }
@@ -23,19 +26,13 @@
 
   <style>
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
       color: #e2e8f0;
-      min-height: 100vh;
     }
     .glass {
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .glass-modal {
-      background: rgba(30, 41, 59, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255,255,255,0.1);
     }
     .nav-tab { transition: all 0.3s ease; }
     .nav-tab-active {
@@ -43,40 +40,6 @@
       color: white;
       font-weight: 600;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #10b981, #0d9488);
-      transition: all 0.2s;
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -10px rgba(16,185,129,0.5); }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-indigo {
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
-      transition: all 0.2s;
-    }
-    .btn-indigo:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -10px rgba(99,102,241,0.5); }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #14b8a6;
-      box-shadow: 0 0 0 3px rgba(20,184,166,0.1);
-    }
-    .table-row:hover { background: rgba(255,255,255,0.03); }
-    .toast {
-      position: fixed; top: 20px; right: 20px; z-index: 9999;
-      padding: 16px 24px; border-radius: 16px; color: white; font-weight: 500;
-      animation: slideIn 0.3s ease;
-    }
-    .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
-    .toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .stat-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      transition: all 0.3s;
-    }
-    .stat-card:hover { transform: translateY(-2px); border-color: rgba(165,180,252,0.3); }
   </style>
 </head>
 <body>
@@ -485,7 +448,6 @@
     }
 
     // ========== 图表 ==========
-    // ========== 图表 ==========
 async function refreshChart() {
   if (accountsCache.length === 0) return;
 
@@ -514,20 +476,21 @@ async function refreshChart() {
 
       const color = colors[i % colors.length];
       
-      const recordsSorted = records.sort((a, b) => new Date(a.date) - new Date(b.date));
       // ✅ 关键修复：使用 labels + data 格式，适配 category 轴
-      allDatasets.push({
-        label: acc?.name || '账号' + id,
-        labels: recordsSorted.map(r => r.date), // ✅ 必须提供 labels 给 X 轴
-        data: recordsSorted.map(r => r.gold),   // ✅ 必须提供纯数字数组给 Y 轴
-        borderColor: color.border,
-        backgroundColor: color.bg,
-        borderWidth: 3,
-        fill: true,
-        tension: 0.3,
-        pointRadius: 4,
-        pointHoverRadius: 7
-      });
+      const recordsSorted = records.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+allDatasets.push({
+  label: acc?.name || '账号' + id,
+  labels: recordsSorted.map(r => r.date), // ✅ X轴刻度
+  data: recordsSorted.map(r => r.gold),   // ✅ Y轴数据
+  borderColor: color.border,
+  backgroundColor: color.bg,
+  borderWidth: 3,
+  fill: true,
+  tension: 0.3,
+  pointRadius: 4,
+  pointHoverRadius: 7
+});
     } catch (e) {
       console.error(`加载账号 ${id} 数据失败:`, e);
     }
@@ -557,22 +520,23 @@ async function refreshChart() {
         }
       },
       // ✅ 关键修复：改为 category，并移除 time 配置
-      scales: {
-        x: {
-          type: 'category', // 不再使用 time
-          ticks: { color: '#94a3b8' },
-          grid: { color: 'rgba(255,255,255,0.05)' }
-        },
-        y: {
-          ticks: {
-            color: '#94a3b8',
-            callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString()
-          },
-          grid: { color: 'rgba(255,255,255,0.05)' }
-        }
-      }
-    }
-  });
+     scales: {
+  x: {
+    type: 'category', // ✅ 必须是 category
+    ticks: {
+      color: '#94a3b8',
+      maxRotation: 45, // 防止日期重叠
+      minRotation: 45
+    },
+    grid: { color: 'rgba(255,255,255,0.05)' }
+  },
+  y: {
+    ticks: {
+      color: '#94a3b8',
+      callback: v => v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toLocaleString()
+    },
+    grid: { color: 'rgba(255,255,255,0.05)' }
+  }
 }
 
     // ========== 记录管理 ==========
