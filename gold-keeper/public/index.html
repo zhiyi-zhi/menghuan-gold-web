@@ -514,11 +514,12 @@ async function refreshChart() {
 
       const color = colors[i % colors.length];
       
+      const recordsSorted = records.sort((a, b) => new Date(a.date) - new Date(b.date));
       // ✅ 关键修复：使用 labels + data 格式，适配 category 轴
       allDatasets.push({
         label: acc?.name || '账号' + id,
-        labels: records.map(r => r.date), // X轴标签
-        data: records.map(r => r.gold),   // Y轴数据
+        labels: recordsSorted.map(r => r.date), // ✅ 必须提供 labels 给 X 轴
+        data: recordsSorted.map(r => r.gold),   // ✅ 必须提供纯数字数组给 Y 轴
         borderColor: color.border,
         backgroundColor: color.bg,
         borderWidth: 3,
