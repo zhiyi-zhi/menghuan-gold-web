@@ -478,7 +478,7 @@
         } else {
           gapHTML = gapDetails.map(g => {
             const color = g.reached ? 'text-emerald-400' : 'text-amber-400';
-            const txt = g.reached ? `✅ 达标` : `差 ${g.gap.toLocaleString()}`;
+            const txt = g.reached ? `✅ 达标` : ` ${g.gap.toLocaleString()}金币`;
             return `<div class="text-xs md:text-sm ${color}">${g.name}: ${txt}</div>`;
           }).join('');
         }
